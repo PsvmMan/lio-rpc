@@ -1,0 +1,2 @@
+com.gt.lio.common.invoker.cglib.CglibRpcInvokerFactory
+com.gt.lio.common.invoker.jdk.JdkRpcInvokerFactory

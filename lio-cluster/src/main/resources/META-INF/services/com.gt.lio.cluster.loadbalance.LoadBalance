@@ -1,0 +1,2 @@
+com.gt.lio.cluster.loadbalance.WeightedRandomLoadBalance
+com.gt.lio.cluster.loadbalance.ConsistentHashLoadBalance

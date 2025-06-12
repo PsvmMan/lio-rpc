@@ -1,0 +1,3 @@
+com.gt.lio.cluster.invoker.simple.SimpleClusterInvokerFactory
+com.gt.lio.cluster.invoker.retry.RetryOnFailureClusterInvokerFactory
+com.gt.lio.cluster.invoker.parallel.ParallelClusterInvokerFactory

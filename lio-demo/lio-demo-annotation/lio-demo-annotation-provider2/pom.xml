@@ -1,0 +1,77 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+	    <groupId>com.gt.lio</groupId>
+        <artifactId>lio-demo-annotation</artifactId>
+        <version>${revision}</version>
+    </parent>
+	
+    <modelVersion>4.0.0</modelVersion>
+
+    <artifactId>lio-demo-annotation-provider2</artifactId>
+	<packaging>jar</packaging>
+	<name>${project.artifactId}</name>
+
+    <dependencies>
+
+        <!--api-->
+        <dependency>
+            <groupId>com.gt.lio</groupId>
+            <artifactId>lio-demo-annotation-api</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+
+        <!--lio核心-->
+        <dependency>
+            <groupId>com.gt.lio</groupId>
+            <artifactId>lio-core</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+
+        <!--lio网络协议-->
+        <dependency>
+            <groupId>com.gt.lio</groupId>
+            <artifactId>lio-protocol-lio</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+
+        <!--注册中心-->
+        <dependency>
+            <groupId>com.gt.lio</groupId>
+            <artifactId>lio-register-zookeeper</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.gt.lio</groupId>
+            <artifactId>lio-register-nacos</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+
+
+        <!--日志-->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>${slf4j.version}</version>
+            <optional>true</optional>
+        </dependency>
+
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <version>${logback.version}</version>
+            <optional>true</optional>
+        </dependency>
+
+        <!--        <dependency>-->
+        <!--            <groupId>org.apache.logging.log4j</groupId>-->
+        <!--            <artifactId>log4j-slf4j-impl</artifactId>-->
+        <!--            <version>${log4j2.version}</version>-->
+        <!--        </dependency>-->
+
+
+    </dependencies>
+
+</project>

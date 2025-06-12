@@ -1,0 +1,86 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+	    <groupId>com.gt.lio</groupId>
+        <artifactId>lio-parent</artifactId>
+        <version>${revision}</version>
+    </parent>
+	
+    <modelVersion>4.0.0</modelVersion>
+
+    <artifactId>lio-core</artifactId>
+	<packaging>jar</packaging>
+	<name>${project.artifactId}</name>
+
+    <dependencies>
+
+        <!--lio框架-->
+        <dependency>
+            <groupId>com.gt.lio</groupId>
+            <artifactId>lio-config-spring</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+
+        <!--netty远程调用-->
+        <dependency>
+            <groupId>com.gt.lio</groupId>
+            <artifactId>lio-remote-netty</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+
+        <!--序列化-->
+        <dependency>
+            <groupId>com.gt.lio</groupId>
+            <artifactId>lio-serialization-jdk</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.gt.lio</groupId>
+            <artifactId>lio-serialization-hessian</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.gt.lio</groupId>
+            <artifactId>lio-serialization-kryo</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+
+        <!--压缩-->
+        <dependency>
+            <groupId>com.gt.lio</groupId>
+            <artifactId>lio-compression-gzip</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.gt.lio</groupId>
+            <artifactId>lio-compression-zstd</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+
+        <!--限流-->
+        <dependency>
+            <groupId>com.gt.lio</groupId>
+            <artifactId>lio-limiter-leaky-bucket</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.gt.lio</groupId>
+            <artifactId>lio-limiter-sliding-window</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.gt.lio</groupId>
+            <artifactId>lio-limiter-token-bucket</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+
+
+    </dependencies>
+
+</project>

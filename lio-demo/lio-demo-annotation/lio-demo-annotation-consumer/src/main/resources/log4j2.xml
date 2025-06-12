@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN">
+    <!-- 定义Appender（日志输出目标） -->
+    <Appenders>
+        <!-- 控制台输出 -->
+        <Console name="Console" target="SYSTEM_OUT">
+            <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss} [%t] %-5level %logger{36} - %msg%n"/>
+        </Console>
+
+        <!-- 文件输出（按天滚动） -->
+<!--        <RollingFile name="RollingFile" fileName="logs/app.log"-->
+<!--                     filePattern="logs/app-%d{yyyy-MM-dd}.log">-->
+<!--            <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss} [%t] %-5level %logger{36} - %msg%n"/>-->
+<!--            <Policies>-->
+<!--                <TimeBasedTriggeringPolicy interval="1" modulate="true"/>-->
+<!--            </Policies>-->
+<!--        </RollingFile>-->
+    </Appenders>
+
+    <!-- 定义Logger（日志记录器） -->
+    <Loggers>
+        <!-- 根Logger（默认级别为INFO，输出到Console和RollingFile） -->
+        <Root level="DEBUG">
+            <AppenderRef ref="Console"/>
+<!--            <AppenderRef ref="RollingFile"/>-->
+        </Root>
+
+        <!-- 特定包或类的Logger（可选） -->
+<!--        <Logger name="com.example.rpc" level="DEBUG" additivity="false">-->
+<!--            <AppenderRef ref="Console"/>-->
+<!--        </Logger>-->
+    </Loggers>
+</Configuration>

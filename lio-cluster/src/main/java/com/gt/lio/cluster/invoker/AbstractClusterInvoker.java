@@ -1,0 +1,50 @@
+package com.gt.lio.cluster.invoker;
+
+import com.gt.lio.cluster.client.ClientInvoker;
+import com.gt.lio.cluster.directory.ServiceDirectory;
+import com.gt.lio.cluster.loadbalance.LoadBalance;
+import com.gt.lio.common.spi.LioServiceLoader;
+import com.gt.lio.config.model.LioReferenceMethodMetadata;
+import com.gt.lio.protocol.body.RequestMessage;
+import com.gt.lio.protocol.body.ResponseMessage;
+
+import java.util.List;
+import java.util.Map;
+
+import static com.gt.lio.config.model.LioReferenceMethodMetadata.DEFAULT;
+
+public abstract class AbstractClusterInvoker implements ClusterInvoker{
+
+    private ServiceDirectory serviceDirectory;
+
+    private Map<String, LioReferenceMethodMetadata> methods;
+
+    public AbstractClusterInvoker(ServiceDirectory serviceDirectory, Map<String, LioReferenceMethodMetadata> methods) {
+        this.serviceDirectory = serviceDirectory;
+        this.methods = methods;
+    }
+
+    @Override
+    public ResponseMessage invoke(RequestMessage req) {
+        try {
+
+            // 获取服务实例
+            List<ClientInvoker> clientInvokerList = serviceDirectory.getClientInvokerList();
+            if (clientInvokerList == null || clientInvokerList.isEmpty()) {
+                throw  new RuntimeException("No provider available for service " + serviceDirectory.getServiceName());
+            }
+
+            LioReferenceMethodMetadata metadata = methods.getOrDefault(req.getMethodKey(), methods.get(DEFAULT));
+
+            // 负载均衡
+            LoadBalance loadBalance = LioServiceLoader.getServiceLoader(LoadBalance.class).getService(metadata.getLoadBalance());
+
+            return invoke(req, clientInvokerList, loadBalance, metadata);
+
+        }catch (Throwable e){
+            return new ResponseMessage(e);
+        }
+    }
+
+    public abstract ResponseMessage invoke(RequestMessage req, List<ClientInvoker> clientInvokers, LoadBalance loadBalance, LioReferenceMethodMetadata methodMetadata);
+}
