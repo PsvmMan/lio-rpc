@@ -67,7 +67,7 @@ public class LioProtocolCodec implements ProtocolCodec {
             buffer.get(body);
 
             // 构建消息对象
-            LioHeader header = new LioHeader(magic, controlByte, metaDataByte, requestId, bodyLength);
+            LioProtocolHeader header = new LioProtocolHeader(magic, controlByte, metaDataByte, requestId, bodyLength);
             out.add(new ProtocolMessage(header, body));
 
             // 更新已处理字节数
@@ -84,8 +84,8 @@ public class LioProtocolCodec implements ProtocolCodec {
 
         // 设置协议头信息
         buf.putShort(MAGIC);
-        buf.put(LioHeader.buildControlByte(header.getMsgType(), header.isRespond(), header.getSerializationType(), header.isCompressed(), header.getCompressionType()));
-        buf.put(LioHeader.buildMetaDataByte(header.getThreadPoolName()));
+        buf.put(LioProtocolHeader.buildControlByte(header.getMsgType(), header.isRespond(), header.getSerializationType(), header.isCompressed(), header.getCompressionType()));
+        buf.put(LioProtocolHeader.buildMetaDataByte(header.getThreadPoolName()));
         buf.putLong(header.getRequestId());
         buf.putInt(length);
 

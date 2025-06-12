@@ -17,7 +17,7 @@ import static com.gt.lio.protocol.ProtocolConstants.*;
  |                  | 压缩方式(3bit)  |                   |                   |                      |                  |
  +------------------+-----------------+-------------------+-------------------+----------------------+------------------+
  */
-public class LioHeader implements ProtocolHeader{
+public class LioProtocolHeader implements ProtocolHeader{
 
     // 魔数版本信息
     private short magic;
@@ -36,9 +36,9 @@ public class LioHeader implements ProtocolHeader{
     private int dataLength;
 
     // 构造函数（通过各个字段构造）
-    public LioHeader(short magic, byte msgType, boolean isRespond, byte serializationType,
-                     boolean isCompressed, byte compressionType,
-                     long requestId, int dataLength) {
+    public LioProtocolHeader(short magic, byte msgType, boolean isRespond, byte serializationType,
+                             boolean isCompressed, byte compressionType,
+                             long requestId, int dataLength) {
         this.magic = magic;
         this.requestId = requestId;
         this.dataLength = dataLength;
@@ -71,7 +71,7 @@ public class LioHeader implements ProtocolHeader{
         return (byte) ((threadPoolName & 0x07) << 5);
     }
 
-    public LioHeader (short magic, byte controlByte, byte metaDataByte, long requestId, int dataLength){
+    public LioProtocolHeader(short magic, byte controlByte, byte metaDataByte, long requestId, int dataLength){
         this.magic = magic;
         this.controlByte = controlByte;
         this.metaDataByte = metaDataByte;
