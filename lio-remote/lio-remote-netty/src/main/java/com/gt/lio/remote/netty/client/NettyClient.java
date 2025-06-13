@@ -85,6 +85,11 @@ public class NettyClient implements TransportClient {
     }
 
     @Override
+    public boolean isConnected() {
+        return channel != null && channel.isActive();
+    }
+
+    @Override
     public void send(ProtocolMessage data){
         channel.writeAndFlush(data);
     }

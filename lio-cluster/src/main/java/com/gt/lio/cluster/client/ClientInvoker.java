@@ -21,10 +21,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ThreadLocalRandom;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+import java.util.concurrent.*;
 
 import static com.gt.lio.config.model.LioReferenceMethodMetadata.DEFAULT;
 import static com.gt.lio.protocol.ProtocolConstants.BUSINESS_MESSAGE;
@@ -40,17 +37,10 @@ public class ClientInvoker {
     // 权重
     private Integer weight;
 
-    // 总权重
-    private int totalWeight = 0;
-
-    // 是否相同权重
-    private boolean sameWeight = true;
-
-    // 累计权重
-    private int[] cumulativeWeights;
-
     // 客户端列表
     private List<TransportClient>  clients;
+
+    private volatile boolean isAvailable = true;
 
     // 线程池名称
     private Byte threadPoolName;
@@ -122,7 +112,7 @@ public class ClientInvoker {
 
         // 获取客户端工厂
         ClientFactory clientFactory = LioServiceLoader.getServiceLoader(ClientFactory.class).getService(remote);
-        clients = new ArrayList<>(connections);
+        clients = new CopyOnWriteArrayList<>();
         for (int i = 0; i < connections; i++) {
             TransportClient client = clientFactory.createClient(startParam);
             clients.add(client);
@@ -137,10 +127,7 @@ public class ClientInvoker {
 
         try {
             // 选择传输客户端
-            TransportClient transportClient = clients.get(ThreadLocalRandom.current().nextInt(clients.size()));
-            if (transportClient == null) {
-                return new ResponseMessage(new RuntimeException("There is no available transmission client"));
-            }
+            TransportClient transportClient = getTransportClient();
 
             // 如果需要等待响应
             if(methodMetadata.isRespond()){
@@ -158,17 +145,7 @@ public class ClientInvoker {
 
                 // 如果是异步
                 if(methodMetadata.isAsync()){
-                    final RpcCallback callback = methodMetadata.getCallback();
-                    future.whenComplete((response, throwable) -> {
-                        if(response != null && response instanceof ResponseMessage){
-                            ResponseMessage responseMessage = (ResponseMessage) response;
-                            if(responseMessage.getException() != null){
-                                callback.onFailure(responseMessage.getException());
-                            }else {
-                                callback.onSuccess(responseMessage.getResult());
-                            }
-                        }
-                    });
+                    asyncDeal(future, methodMetadata.getCallback());
                     return new ResponseMessage();
                 }
 
@@ -204,10 +181,7 @@ public class ClientInvoker {
             LioReferenceMethodMetadata methodMetadata = methods.getOrDefault(req.getMethodKey(), methods.get(DEFAULT));
 
             // 选择传输客户端
-            TransportClient transportClient = clients.get(ThreadLocalRandom.current().nextInt(clients.size()));
-            if (transportClient == null) {
-                throw new RuntimeException("There is no available transmission client");
-            }
+            TransportClient transportClient = getTransportClient();
 
             // 构建协议消息
             ProtocolMessage protocolMessage = buildProtocolMessage(req, requestId, methodMetadata);
@@ -219,17 +193,7 @@ public class ClientInvoker {
 
                 // 如果是异步
                 if(methodMetadata.isAsync()){
-                    final RpcCallback callback = methodMetadata.getCallback();
-                    future.whenComplete((response, throwable) -> {
-                        if(response != null && response instanceof ResponseMessage){
-                            ResponseMessage responseMessage = (ResponseMessage) response;
-                            if(responseMessage.getException() != null){
-                                callback.onFailure(responseMessage.getException());
-                            }else {
-                                callback.onSuccess(responseMessage.getResult());
-                            }
-                        }
-                    });
+                    asyncDeal(future, methodMetadata.getCallback());
                     return null;
                 }
             }
@@ -242,6 +206,43 @@ public class ClientInvoker {
         }
 
         return future;
+    }
+
+    private void asyncDeal(CompletableFuture<Object> future, RpcCallback callback){
+        future.whenComplete((response, throwable) -> {
+            if(response != null && response instanceof ResponseMessage){
+                ResponseMessage responseMessage = (ResponseMessage) response;
+                if(responseMessage.getException() != null){
+                    callback.onFailure(responseMessage.getException());
+                }else {
+                    callback.onSuccess(responseMessage.getResult());
+                }
+            }
+        });
+    }
+
+    private TransportClient getTransportClient(){
+
+        if (clients.isEmpty()) {
+            throw new IllegalStateException("没有可用的 TransportClient");
+        }
+
+        int maxTries = clients.size(); // 最多尝试次数
+        for (int i = 0; i < maxTries; i++) {
+
+            TransportClient transportClient = clients.get(ThreadLocalRandom.current().nextInt(clients.size()));
+
+            if (transportClient.isConnected()) {
+                return transportClient;
+            } else {
+                // 连接无效，移除该 client
+                clients.remove(transportClient); // CopyOnWriteArrayList 支持安全 remove
+            }
+        }
+
+        // 所有 client 都不可用
+        this.isAvailable = false;
+        throw new IllegalStateException("所有 TransportClient 都已断开连接");
     }
 
     private ProtocolMessage buildProtocolMessage(RequestMessage req, long requestId, LioReferenceMethodMetadata methodMetadata) throws IOException {
@@ -289,32 +290,13 @@ public class ClientInvoker {
         }
     }
 
+
+    public boolean isAvailable(){
+        return isAvailable;
+    }
+
     public int getWeight() {
         return weight;
-    }
-
-    public int getTotalWeight() {
-        return totalWeight;
-    }
-
-    public void setTotalWeight(int totalWeight) {
-        this.totalWeight = totalWeight;
-    }
-
-    public boolean isSameWeight() {
-        return sameWeight;
-    }
-
-    public void setSameWeight(boolean sameWeight) {
-        this.sameWeight = sameWeight;
-    }
-
-    public int[] getCumulativeWeights() {
-        return cumulativeWeights;
-    }
-
-    public void setCumulativeWeights(int[] cumulativeWeights) {
-        this.cumulativeWeights = cumulativeWeights;
     }
 
     public String getHost() {

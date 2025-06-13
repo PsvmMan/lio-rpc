@@ -8,55 +8,33 @@ import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
 @SPIService("weightedRandom")
-public class WeightedRandomLoadBalance implements LoadBalance{
+public class WeightedRandomLoadBalance extends AbstractLoadBalance{
 
-    final boolean useCache;
 
     public WeightedRandomLoadBalance() {
-        this(true);
-    }
 
-    public WeightedRandomLoadBalance(boolean useCache) {
-        this.useCache = useCache;
     }
 
     @Override
-    public ClientInvoker select(List<ClientInvoker> clientInvokers, RequestMessage req) {
+    public ClientInvoker doSelect(List<ClientInvoker> clientInvokers, RequestMessage req) {
 
-        // 如果没有服务提供者，则直接返回 null
-        if (clientInvokers == null || clientInvokers.isEmpty()) {
-            return null;
-        }
-
-        // 如果只有一个服务提供者，则直接返回
-        if (clientInvokers.size() == 1) {
-            return clientInvokers.get(0);
-        }
-
-        // 总权重、是否权重相同、权重值数组 提前计算好了
+        // 总权重、是否权重相同、权重值数组
         int totalWeight = 0;
         boolean sameWeight = true;
-        int[] cumulativeWeights = null;
-        if(useCache){
-            totalWeight = clientInvokers.get(0).getTotalWeight();
-            sameWeight = clientInvokers.get(0).isSameWeight();
-            cumulativeWeights = clientInvokers.get(0).getCumulativeWeights();
-        }else {
-            cumulativeWeights = new int[clientInvokers.size()];
-            for(int i = 0; i < clientInvokers.size(); i++){
-                ClientInvoker clientInvoker = clientInvokers.get(i);
-                totalWeight += clientInvoker.getWeight();
-                if(sameWeight & i > 0 && clientInvokers.get(i - 1).getWeight() != clientInvoker.getWeight()){
-                    sameWeight = false;
-                }
-                if(i == 0){
-                    cumulativeWeights[i] = clientInvoker.getWeight();
-                }else {
-                    cumulativeWeights[i] = cumulativeWeights[i - 1] + clientInvoker.getWeight();
-                }
+        int[] cumulativeWeights = new int[clientInvokers.size()];
+
+        for(int i = 0; i < clientInvokers.size(); i++){
+            ClientInvoker clientInvoker = clientInvokers.get(i);
+            totalWeight += clientInvoker.getWeight();
+            if(sameWeight & i > 0 && clientInvokers.get(i - 1).getWeight() != clientInvoker.getWeight()){
+                sameWeight = false;
+            }
+            if(i == 0){
+                cumulativeWeights[i] = clientInvoker.getWeight();
+            }else {
+                cumulativeWeights[i] = cumulativeWeights[i - 1] + clientInvoker.getWeight();
             }
         }
-
 
         // 如果总权重为0 或 权重相同，则直接随机返回
         if (totalWeight <= 0 || sameWeight) {

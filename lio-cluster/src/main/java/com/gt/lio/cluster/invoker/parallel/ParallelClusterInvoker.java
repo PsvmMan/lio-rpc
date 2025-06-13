@@ -40,7 +40,7 @@ public class ParallelClusterInvoker extends AbstractClusterInvoker {
     public ResponseMessage invoke(RequestMessage req, List<ClientInvoker> clientInvokers, LoadBalance loadBalance, LioReferenceMethodMetadata methodMetadata) {
 
         if (clientInvokers == null || clientInvokers.isEmpty()) {
-            return new ResponseMessage(new RuntimeException("没有可用的服务提供者"));
+            return new ResponseMessage(new RuntimeException("没有可用服务节点"));
         }
 
         // 超时时间
@@ -48,16 +48,30 @@ public class ParallelClusterInvoker extends AbstractClusterInvoker {
 
         // 并发数
         int parallelNumber = methodMetadata.getParallelNumber();
-        final List<ClientInvoker> selected;
+        List<ClientInvoker> selected = new ArrayList<>();
         if(parallelNumber >= clientInvokers.size()){
-            selected = clientInvokers;
-        }else {
-            selected = new ArrayList<>();
-            ClientInvoker clientInvoker = loadBalance.select(clientInvokers, req);
-            int index = clientInvokers.indexOf(clientInvoker);
-            for (int i = 0; i < parallelNumber; i++) {
-                selected.add(clientInvokers.get((index + i) % clientInvokers.size()));
+            for (ClientInvoker invoker : clientInvokers) {
+                if(invoker.isAvailable()){
+                    selected.add(invoker);
+                }
             }
+        }else {
+            ClientInvoker clientInvoker = select(clientInvokers, req, loadBalance);
+            selected.add(clientInvoker);
+            int index = clientInvokers.indexOf(clientInvoker);
+            for (int i = 1; i < clientInvokers.size(); i++) {
+                ClientInvoker invoker = clientInvokers.get((++index) % clientInvokers.size());
+                if(invoker.isAvailable()){
+                    selected.add(invoker);
+                }
+                if(selected.size() >= parallelNumber){
+                    break;
+                }
+            }
+        }
+
+        if(selected.isEmpty()){
+            return new ResponseMessage(new RuntimeException("没有可用服务节点"));
         }
 
         int total = selected.size();

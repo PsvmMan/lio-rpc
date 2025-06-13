@@ -9,4 +9,6 @@ public interface TransportClient {
     String getLocalAddress();
 
     String getRemoteAddress();
+
+    boolean isConnected();
 }

@@ -11,7 +11,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
 @SPIService("consistentHash")
-public class ConsistentHashLoadBalance implements LoadBalance {
+public class ConsistentHashLoadBalance extends AbstractLoadBalance {
 
     // 默认虚拟节点数量
     private final int virtualNodeCount;
@@ -42,16 +42,7 @@ public class ConsistentHashLoadBalance implements LoadBalance {
     }
 
     @Override
-    public ClientInvoker select(List<ClientInvoker> clientInvokers, RequestMessage req) {
-
-        if (clientInvokers == null || clientInvokers.isEmpty()) {
-            return null;
-        }
-
-        // 如果只有一个服务提供者，则直接返回
-        if (clientInvokers.size() == 1) {
-            return clientInvokers.get(0);
-        }
+    public ClientInvoker doSelect(List<ClientInvoker> clientInvokers, RequestMessage req) {
 
         // 提取 key
         String key = keyExtractor.apply(req);
@@ -71,14 +62,14 @@ public class ConsistentHashLoadBalance implements LoadBalance {
     }
 
     /**
-     * 默认 key 提取逻辑：service + methodKey
+     * 默认 key 提取逻辑
      */
     private static Function<RequestMessage, String> defaultKeyExtractor() {
-        return req -> req.getServiceName() + req.getMethodKey();
+        return req -> req.getServiceName() + req.getMethodKey() + System.nanoTime();
     }
 
     /**
-     * 默认哈希算法：MD5
+     * 默认哈希算法
      */
     private static HashFunction defaultHashFunction() {
         return new MurmurHash();

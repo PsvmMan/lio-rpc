@@ -32,11 +32,18 @@ public class RetryOnFailureClusterInvoker extends AbstractClusterInvoker{
         for (int i = 0; i <= retries; i++) {
             try {
 
+                currentInvoker = null;
+
                 if (i == 0) {
-                    currentInvoker = loadBalance.select(clientInvokers, req);
+                    currentInvoker = select(clientInvokers, req, loadBalance);
                     index = clientInvokers.indexOf(currentInvoker);
                 }else {
-                    currentInvoker = clientInvokers.get((index + 1) % clientInvokers.size());
+                    for (int j = 0; j < clientInvokers.size(); j++) {
+                        currentInvoker = clientInvokers.get((index + 1) % clientInvokers.size());
+                        if (currentInvoker != null && currentInvoker.isAvailable()) {
+                            break;
+                        }
+                    }
                 }
 
                 if (currentInvoker == null) {

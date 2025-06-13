@@ -17,8 +17,8 @@ public interface UserService {
      * @param id 用户ID
      * @return User对象，如果不存在则返回null
      */
-    @LioReferenceMethod(isAsync = true, callback = UserCallback.class)
-    @LioRateLimit(period = 20000, capacity = 3, refillTokens = 1)
+    @LioReferenceMethod(isAsync = false, callback = UserCallback.class, cluster = "simple", loadBalance = "weightedRandom")
+//    @LioRateLimit(period = 20000, capacity = 3, refillTokens = 1)
     User selectById(Long id);
 
     /**

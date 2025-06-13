@@ -127,37 +127,11 @@ public class ServiceDirectory implements NotifyListener, Directory {
             clientInvokersMap.put(registerKey, newInvokerHashMap);
             List<ClientInvoker> temp = new ArrayList<>();
 
-            // 计算总权重、是否相同重
-            int totalWeight = 0;
-            boolean sameWeight = true;
             for (HashMap<String, ClientInvoker> invokerHashMap : clientInvokersMap.values()) {
-                ArrayList<ClientInvoker> list = new ArrayList<>(invokerHashMap.values());
-                for(int i = 0; i < list.size(); i++){
-                    ClientInvoker invoker = list.get(i);
+                for (ClientInvoker invoker : invokerHashMap.values()) {
                     temp.add(invoker);
-                    totalWeight += invoker.getWeight();
-                    if(sameWeight & i > 0 && list.get(i - 1).getWeight() != invoker.getWeight()){
-                        sameWeight = false;
-                    }
                 }
             }
-
-            // 为加权随机算法提前计算
-            if(temp != null && !temp.isEmpty()){
-
-                ClientInvoker clientInvoker = temp.get(0);
-                clientInvoker.setSameWeight(sameWeight);
-                clientInvoker.setTotalWeight(totalWeight);
-
-                int[] cumulativeWeights = new int[temp.size()];
-                cumulativeWeights[0] = temp.get(0).getWeight();
-                for (int i = 1; i < temp.size(); i++) {
-                    cumulativeWeights[i] = cumulativeWeights[i - 1] + temp.get(i).getWeight();
-                }
-                clientInvoker.setCumulativeWeights(cumulativeWeights);
-
-            }
-
             clientInvokers = temp;
 
             // 销毁无用的调用

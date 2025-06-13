@@ -23,10 +23,7 @@ public class SimpleClusterInvoker extends AbstractClusterInvoker {
     @Override
     public ResponseMessage invoke(RequestMessage req, List<ClientInvoker> clientInvokers, LoadBalance loadBalance, LioReferenceMethodMetadata methodMetadata) {
         try {
-            ClientInvoker clientInvoker = loadBalance.select(clientInvokers, req);
-            if (clientInvoker == null) {
-                return new ResponseMessage(new RuntimeException("没有可用服务节点"));
-            }
+            ClientInvoker clientInvoker = select(clientInvokers, req, loadBalance);
             return clientInvoker.invoke(req);
         }
         catch (Throwable e) {
