@@ -1,9 +1,9 @@
-# 🚀 MyRPC —— 我的自研 Java RPC 框架
+# 🚀 Lio RPC 1.0.0
 
 > 简洁、高效、可扩展的高性能 RPC 框架，适用于微服务架构下的服务通信场景。
 
 [![Build Status](https://img.shields.io/badge/build-passing-green)](https://github.com/PsvmMan/lio-rpc)
-[![License](https://img.shields.io/github/license/PsvmMan/lio-rpc)](LICENSE)
+[![License](https://img.shields.io/github/license/PsvmMan/lio-rpc.svg)](LICENSE)
 
 ---
 
@@ -26,7 +26,7 @@
 
 ## 简介
 
-MyRPC 是一个轻量级的 Java 远程过程调用框架（Remote Procedure Call），旨在提供高性能、高可用、低侵入的服务间通信能力。支持多种协议、序列化方式以及注册中心集成，适用于构建分布式系统和微服务架构。
+Lio RPC 是一个轻量级但功能强大的 Java 远程过程调用（Remote Procedure Call）框架，旨在为开发者提供高性能、高可用性以及低侵入性的服务间通信解决方案。该框架特别适用于构建分布式系统和微服务架构，提供了丰富的功能支持和服务治理能力。
 
 该项目是我个人学习与实践过程中逐步构建的 RPC 框架，目前具备基础功能并持续迭代中。
 
@@ -34,14 +34,20 @@ MyRPC 是一个轻量级的 Java 远程过程调用框架（Remote Procedure Cal
 
 ## 核心特性
 
-- ✅ 支持多种通信协议：TCP、HTTP、LIO 等
-- ✅ 支持多种序列化方式：JSON、Hessian、Protobuf、JDK 序列化等
-- ✅ 负载均衡策略：随机、轮询、最少活跃调用等
-- ✅ 服务注册与发现：Zookeeper、Nacos、Eureka、Consul 插件式支持
-- ✅ 客户端容错机制：失败重试、熔断、降级
+- ✅ 调用方式：同步调用、异步回调、单向调用、多路竞速调用
+- ✅ 参数配置：配置文件(全局参数配置)、注解(接口级参数配置、方法级参数配置)
+- ✅ 通信协议：提供了性能高效的lio通信协议，并且支持自定义扩展通信协议
+- ✅ 序列化：提供了 Hessian、Kryo、JDK 等序列化方式，并且支持自定义扩展序列化方式
+- ✅ 解压缩：对大数据场景提供了 gzip、zstd 等序列化方式，并且支持自定义扩展解压缩方式
+- ✅ 负载均衡：提供了加权随机、一致性哈希等负载均衡策略，并且支持自定义扩展负载均衡策略
+- ✅ 服务注册与发现：提供了 Zookeeper、Nacos 注册中心插件，并且支持自定义扩展注册中心插件
+- ✅ 客户端容错机制：支持降级处理、失败重试
+- ✅ 流量控制：客户端支持滑动窗口、漏桶、令牌桶等限流方式，并且支持自定义扩展流量控制方式
+- ✅ 集群策略：支持快速失败、失败重试、多路竞速等集群策略，并且支持自定义扩展集群策略
+- ✅ 业务线程池：支持多业务线程池，保证业务处理隔离，并且支持自定义扩展业务线程池
 - ✅ 高性能 IO：基于 Netty 实现异步非阻塞通信
-- ✅ 可插拔设计：模块解耦，易于二次开发与扩展
-- ✅ Spring Boot Starter 集成，开箱即用
+- ✅ 可插拔设计：提供SPI机制，使系统功能模块解耦，易于二次开发与扩展
+- ✅ 提供了对 Spring 和 Spring Boot 的原生集成支持
 
 ---
 
