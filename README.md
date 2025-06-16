@@ -182,7 +182,7 @@ public class RpcProviderApplication {
 @RestController
 public class HelloController {
 
-    @Reference
+    @LioReference
     private HelloService helloService;
 
     @GetMapping("/hello")
@@ -271,6 +271,9 @@ xx.xx.xx.xx.xx.JsonSerialization
 ```
 该机制极大提升了 Lio RPC 的可维护性和可扩展性，使得框架具备良好的插拔能力，方便开发者根据业务需求定制组件。
 
+#### 📂 **源码位置：**
+`lio-common`模块中：`com.gt.lio.common.spi` 包
+
 ---
 ### 2. **序列化**
 Lio RPC 框架内置了对多种常见序列化方式的支持，开发者可根据性能需求和业务场景灵活选择。当前支持以下三种主流的序列化机制：
@@ -290,6 +293,9 @@ lio:
 
 #### 🧩 **扩展性：**
 Lio RPC 框架支持通过 SPI 扩展序列化方式，开发者可以自定义实现 `Serialization` 接口，并使用 `@SPIService` 注解指定序列化方式的名称，在 `META-INF/services/` 目录下添加配置文件 `com.gt.lio.serialization.Serialization`，并在配置文件中填入实现类的全限定类名，即可完成扩展注册。
+
+#### 📂 **源码位置：**
+`lio-serialization` 模块
 
 ---
 ### 3. **解压缩**
@@ -335,3 +341,157 @@ public interface UserService {
 
 #### 🧩 **扩展性**
 Lio RPC 框架支持通过 SPI 扩展解压缩方式，开发者可以自定义实现 `Compression` 接口，并使用 `@SPIService` 注解指定解压缩方式的名称，在 `META-INF/services/` 目录下添加配置文件 `com.gt.lio.compression.Compression`，并在配置文件中填入实现类的全限定类名，即可完成扩展注册。
+
+
+#### 📂 **源码位置：**
+`lio-compression` 模块
+
+---
+### 4. **流量控制**
+Lio RPC 框架内置了多种限流策略，旨在防止系统在高并发场景下因请求过载而崩溃，提升系统的稳定性和可用性。目前支持以下三种主流的限流算法：
+
+- 令牌桶（Token Bucket）：以恒定速率向桶中添加令牌，请求需要获取令牌才能继续执行，适用于突发流量控制，是默认选项。
+- 漏桶（Leaky Bucket）：将请求按固定速率处理，平滑流量输出，适用于对流量稳定性要求较高的场景。
+- 滑动窗口（Sliding Window）：基于时间窗口统计请求数量，支持更细粒度的限流控制，精度更高。
+
+当前版本仅支持客户端限流，即对客户端发起的请求进行频率限制，防止客户端向服务端发送过多请求导致雪崩效应。
+
+#### 📋 **使用方式**
+客户端的限流策略，提供的是方法级别的注解，以`UserService`接口为例，它的`selectById()`方法请求量特别大,我们可以给`UserService`接口的`selectById()`方法进行限流，使用`@LioRateLimit`注解来开启限流功能，可以指定限流算法为，默认是`token_bucket`，period为令牌补充周期，单位为毫秒，capacity为桶的初始容量，refillTokens为每次填充的令牌数量。
+
+当然type类型还支持漏桶`leaky_bucket`、滑动窗口`sliding_window`，这三种类型的限流策略参数各有不同，同时还支持阻塞限流、超时限流，具体可参考源码。
+```java
+public interface UserService {
+
+    @LioRateLimit(type = "token_bucket", period = 1000, capacity = 3, refillTokens = 1)
+    User selectById(Long id);
+    
+}
+```
+
+#### 🧩 **扩展性**
+Lio RPC 框架支持通过 SPI 扩展限流方式，开发者可以自定义实现 `RateLimiterFactory` 接口，并使用 `@SPIService` 注解指定限流方式的名称，在 `META-INF/services/` 目录下添加配置文件 `com.gt.lio.limiter.RateLimiterFactory`，并在配置文件中填入实现类的全限定类名，即可完成扩展注册。
+
+#### 📂 **源码位置：**
+`lio-limiter` 模块
+
+---
+### 5. **注册中心**
+
+Lio RPC 框架支持多种主流的服务注册与发现机制，便于构建灵活、可扩展的微服务架构。目前框架已实现以下两种注册中心的集成支持：
+
+- Zookeeper：基于 Apache Zookeeper 的分布式协调服务，具备高可用性和强一致性，适用于传统分布式系统。
+- Nacos：阿里巴巴开源的服务发现与配置管理平台，支持动态服务注册与发现，适用于云原生和 Spring Cloud 生态。
+
+注册中心在 Lio RPC 中用于服务提供者（Provider）和服务消费者（Consumer）之间的服务注册与发现，确保服务调用的动态感知和负载均衡能力。
+
+#### 📋 **使用方式：**
+你可通过配置指定使用哪些注册中心，支持配置多注册中心，例如在 application.yml 中配置，注意：服务消费者配置多个注册中心，代表从多个注册中心获取服务；服务提供者配置多个注册中心，代表服务提供者注册到多个注册中心。
+```yaml
+lio:
+  registry:
+    type: zookeeper 
+    address: 192.168.204.130:2181 
+```
+
+#### 🧩 **扩展性：**
+Lio RPC 框架支持通过 SPI 扩展注册中心插件，开发者可以自定义实现 `RegistryFactory` 接口，并使用 `@SPIService` 注解指定注册中心插件的名称，在 `META-INF/services/` 目录下添加配置文件 `com.gt.lio.register.RegistryFactory`，并在配置文件中填入实现类的全限定类名，即可完成扩展注册。
+
+#### 📂 **源码位置：**
+`lio-register` 模块
+
+---
+### 6. **负载均衡**
+Lio RPC 框架提供了两种常见的负载均衡策略，帮助服务消费者在多个服务提供者之间进行合理的请求分发，提升系统整体性能与可用性。目前支持以下两种策略：
+
+- 加权随机（Weighted Random）：根据服务实例配置的权重进行随机选择，权重越高被选中的概率越大，适用于服务器资源不均的场景，，是默认选项。
+- 一致性哈希（Consistent Hashing）：将服务调用者与服务提供者映射到哈希环上，尽量减少节点变动对路由的影响，适用于需要会话保持或缓存亲和性的场景。
+
+#### 📋 **使用方式：**
+
+- 全局配置：在 application.yml 中配置负载均衡策略。
+```yaml
+lio:
+  consumer:
+    loadbalance: weightedRandom # 全局配置负载均衡策略，支持weightedRandom、consistentHash
+```
+
+- 接口级配置：如果需要针对某个接口进行负载均衡策略配置，可以在`@LioReference` 注解中指定负载均衡策略。
+```java
+@RestController
+public class HelloController {
+
+    @LioReference(loadbalance = "consistentHash")
+    private HelloService helloService;
+
+    @GetMapping("/hello")
+    public String hello(@RequestParam String name) {
+        return helloService.sayHello(name);
+    }
+}
+```
+
+- 方法级配置：如果需要针对某个方法进行负载均衡策略配置，可以在`@LioReferenceMethod` 注解中指定负载均衡策略。
+```java
+public interface HelloService {
+    
+    @LioReferenceMethod(loadbalance = "weightedRandom")
+    String sayHello(String name);
+    
+}
+```
+
+#### 🧩 **扩展性：**
+Lio RPC 框架支持通过 SPI 扩展负载均衡策略，开发者可以自定义实现 `LoadBalance` 接口，并使用 `@SPIService` 注解指定负载均衡策略的名称，在 `META-INF/services/` 目录下添加配置文件 `com.gt.lio.cluster.loadbalance.LoadBalance`，并在配置文件中填入实现类的全限定类名，即可完成扩展注册。
+
+#### 📂 **源码位置：**
+`lio-cluster` 模块中的 `com.gt.lio.cluster.loadbalance` 包
+
+---
+### 7. **集群模式**
+Lio RPC 框架支持多种集群调用策略，用于控制服务消费者在调用远程服务失败时的行为，提升系统的健壮性和可用性。目前提供了以下三种常见的集群容错策略：
+
+- 失败直接返回：调用失败后立即抛出异常，适用于对响应时间敏感、无需重试的场景。
+- 失败重试：在调用失败后自动切换其他可用服务实例进行重试，适用于幂等性接口调用。
+- 竞速并发调用：同时向多个服务实例发起请求，取最先执行成功的结果作为最终结果，适用于对响应速度要求极高的场景。
+
+
+#### 📋 **使用方式：**
+
+- 全局配置：在 application.yml 中配置负载均衡策略。
+```yaml
+lio:
+  consumer:
+    cluster: simple # 全局配置集群策略，支持simple、retryOnFailure、parallel
+```
+
+- 接口级配置：如果需要针对某个接口进行集群策略配置，可以在`@LioReference` 注解中指定集群策略。
+```java
+@RestController
+public class HelloController {
+
+    @LioReference(cluster = "retryOnFailure")
+    private HelloService helloService;
+
+    @GetMapping("/hello")
+    public String hello(@RequestParam String name) {
+        return helloService.sayHello(name);
+    }
+}
+```
+
+- 方法级配置：如果需要针对某个方法进行集群策略配置，可以在`@LioReferenceMethod` 注解中指定集群策略。
+```java
+public interface HelloService {
+    
+    @LioReferenceMethod(cluster = "parallel")
+    String sayHello(String name);
+    
+}
+```
+
+#### 🧩 **扩展性：**
+Lio RPC 框架支持通过 SPI 扩展集群策略，开发者可以自定义实现 `ClusterInvokerFactory` 接口，并使用 `@SPIService` 注解指定集群策略的名称，在 `META-INF/services/` 目录下添加配置文件 `com.gt.lio.cluster.invoker.ClusterInvokerFactory`，并在配置文件中填入实现类的全限定类名，即可完成扩展注册。
+
+#### 📂 **源码位置：**
+`lio-cluster` 模块中的 `com.gt.lio.cluster.invoker` 包
