@@ -89,26 +89,30 @@ Lio RPC 是一个轻量级但功能强大的 Java 远程过程调用（Remote Pr
 ### ✅ 添加依赖（Maven 示例）
 
 ```xml
-<!-- Lio框架核心依赖 -->
-<dependency>
-    <groupId>com.gt.lio</groupId>
-    <artifactId>lio-core</artifactId>
-    <version>1.0.0</version>
-</dependency>
+<dependencies>
+    
+    <!-- Lio框架核心依赖 -->
+    <dependency>
+        <groupId>com.gt.lio</groupId>
+        <artifactId>lio-core</artifactId>
+        <version>1.0.0</version>
+    </dependency>
 
-<!-- zookeeper作为注册中心 -->
-<dependency>
-    <groupId>com.gt.lio</groupId>
-    <artifactId>lio-register-zookeeper</artifactId>
-    <version>1.0.0</version>
-</dependency>
+    <!-- zookeeper作为注册中心 -->
+    <dependency>
+        <groupId>com.gt.lio</groupId>
+        <artifactId>lio-register-zookeeper</artifactId>
+        <version>1.0.0</version>
+    </dependency>
 
-<!-- 使用lio通信协议 -->
-<dependency>
-    <groupId>com.gt.lio</groupId>
-    <artifactId>lio-protocol-lio</artifactId>
-    <version>1.0.0</version>
-</dependency>
+    <!-- 使用lio通信协议 -->
+    <dependency>
+        <groupId>com.gt.lio</groupId>
+        <artifactId>lio-protocol-lio</artifactId>
+        <version>1.0.0</version>
+    </dependency>
+    
+</dependencies>
 ```
 
 ### 🛠️ 配置服务
@@ -220,7 +224,7 @@ Hello, Lio!
 ### 1. **SPI 机制**
 
 Lio RPC 框架采用基于 JDK 原生 ServiceLoader 的 SPI（Service Provider Interface）机制，对核心组件进行统一管理和动态加载。通过封装 `LioServiceLoader` 工具类，实现了更加灵活、可扩展的服务发现与实例化机制。
-不仅是Lio RPC，很多的框架都采用了SPI机制，比如Dubbo，理解SPI机制对框架源码学习的基础。
+不仅是Lio RPC，很多的框架都采用了SPI机制，比如Dubbo，理解SPI机制是框架源码学习的基础。
 
 #### 📝 **主要特性：**
 
@@ -254,13 +258,13 @@ public class JsonSerialization implements Serialization {
 
     @Override
     public <T> byte[] serialize(T obj) {
-        .......
+        // 序列化逻辑
     }
 
     @Override
     @SuppressWarnings("unchecked")
     public <T> T deserialize(byte[] bytes, Class<T> clazz) {
-        .......
+        // 反序列化逻辑
     }
 }
 ```
@@ -404,7 +408,7 @@ Lio RPC 框架支持通过 SPI 扩展注册中心插件，开发者可以自定�
 ### 6. **负载均衡**
 Lio RPC 框架提供了两种常见的负载均衡策略，帮助服务消费者在多个服务提供者之间进行合理的请求分发，提升系统整体性能与可用性。目前支持以下两种策略：
 
-- 加权随机（Weighted Random）：根据服务实例配置的权重进行随机选择，权重越高被选中的概率越大，适用于服务器资源不均的场景，，是默认选项。
+- 加权随机（Weighted Random）：根据服务实例配置的权重进行随机选择，权重越高被选中的概率越大，适用于服务器资源不均的场景，是默认选项。
 - 一致性哈希（Consistent Hashing）：将服务调用者与服务提供者映射到哈希环上，尽量减少节点变动对路由的影响，适用于需要会话保持或缓存亲和性的场景。
 
 #### 📋 **使用方式：**
@@ -495,3 +499,201 @@ Lio RPC 框架支持通过 SPI 扩展集群策略，开发者可以自定义实�
 
 #### 📂 **源码位置：**
 `lio-cluster` 模块中的 `com.gt.lio.cluster.invoker` 包
+
+---
+### 8. **业务线程池**
+RPC框架的基本过程就是，客户端构造请求对象，将请求对象发送到服务端，服务端接收到请求对象，进行业务处理，然后将响应对象返回给客户端。
+
+服务端接收到请求对象这个过程一般依赖于传输框架来实现，例如Netty，利用 NIO 线程模型进行高效地接收请求对象。业务处理和序列化结果响应客户端这两个过程需要放在业务线程池中进行处理，因为这两个操作是非常耗时的，如果在IO线程中处理，会阻塞后续的IO请求。 
+
+Lio RPC框架提供了默认的业务处理线程池，当然你也可以自定义线程池，来实现业务线程池的扩展和隔离。
+
+#### 📋 **使用方式：**
+在服务提供者，你可以在`LioService`注解中给接口指定业务线程池的名称，如果不指定，默认情况下，线程池名称为`default`。
+```java
+@LioService(threadPoolName = "default")
+public class HelloServiceImpl implements HelloService {
+    @Override
+    public String sayHello(String name) {
+        return "Hello, " + name + "!";
+    }
+}
+```
+
+#### 🧩 **扩展性：**
+Lio RPC 框架支持通过 SPI 扩展业务线程池，开发者可以自定义实现 `ThreadPoolFactory` 接口，并使用 `@SPIService` 注解指定业务线程池的名称，在 `META-INF/services/` 目录下添加配置文件 `com.gt.lio.common.threadpool.ThreadPoolFactory`，并在配置文件中填入实现类的全限定类名，即可完成扩展注册。
+
+#### 📂 **源码位置：**
+`lio-common` 模块中的 `com.gt.lio.common.threadpool` 包
+
+
+---
+### 9. **降级兜底处理**
+Lio RPC 框架支持在服务调用失败（如超时、异常等）时进行自动降级处理，以提升系统的健壮性和可用性。通过 `@LioReference` 注解中的 `fallback()` 属性，开发者可以指定一个实现了降级逻辑的类，当调用失败时自动切换到该类的方法返回兜底结果。
+- 接口级别降级：通过 @LioReference(fallback = DemoServiceFallback.class) 配置，为整个接口设置统一的降级实现。
+- 方法级别排除：若某个方法不希望启用降级逻辑，可在其方法上添加 @LioNoFallback 注解，跳过对该方法的兜底处理。
+
+#### 📋 **使用方式：**
+降级逻辑实现类
+```java
+public class HelloServiceFallback implements HelloService {
+    @Override
+    public String sayHello(String name) {
+        return "";
+    }
+    @Override
+    public String sayHello(String name, int age) {
+        return "";
+    }
+}
+```
+在引用注解中配置降级类
+```java
+@RestController
+public class HelloController {
+
+    @LioReference(fallback = HelloServiceFallback.class)
+    private HelloService helloService;
+
+    @GetMapping("/hello")
+    public String hello(@RequestParam String name) {
+        return helloService.sayHello(name);
+    }
+}
+```
+对特定方法禁用降级（可选）
+```java
+public interface HelloService {
+    
+    String sayHello(String name);
+
+    @LioNoFallback
+    String sayHello(String name, int age);
+    
+}
+```
+
+#### 📂 **源码位置：**
+`lio-config-spring` 模块中的 `com.gt.lio.config.spring.context.LioReferenceBeanPostProcessor` 类
+
+
+
+---
+### 10. **同步调用、异步回调、单向调用**
+Lio RPC 框架支持多种远程调用模式，包括 同步调用（Sync）、异步回调（Async Callback） 和 单向调用（One-way），以满足不同业务场景对性能和响应方式的需求。
+- 同步调用：同步调用是指客户端在发起请求后，会等待服务端返回响应结果，直到响应结果返回。
+- 异步回调：异步回调是指客户端在发起请求后，会立即返回响应结果，并通过回调函数获取服务端返回的结果。
+- 单向调用：单向调用是指客户端在发起请求后，不会等待服务端返回响应结果。
+
+#### 📋 **使用方式：**
+同步调用，默认就是同步调用，不需要做任何配置。
+```java
+public interface HelloService {
+    
+    String sayHello(String name);
+    
+}
+```
+
+异步回调：通过 @LioReferenceMethod方法注解进行配置，使用方式如下：
+
+- 创建一个回调类，必须实现RpcCallback接口
+```java
+public class DemoRpcCallback implements RpcCallback {
+
+    @Override
+    public void onSuccess(Object response) {
+        System.out.println("onSuccess: " + (String) response);
+    }
+
+    @Override
+    public void onFailure(Throwable cause) {
+        Throwable err = cause.getCause();
+        System.out.println("onFailure: " + err.getMessage());
+    }
+}
+```
+- 在引用注解中开启异步，并且配置回调类
+```java
+public interface HelloService {
+    
+    @LioReferenceMethod(isAsync = true, callback = DemoRpcCallback.class)
+    String sayHello(String name);
+    
+}
+```
+
+单向调用：通过 @LioReferenceMethod方法注解进行配置，在引用注解中设置不返回值，使用方式如下：
+```java
+public interface HelloService {
+    
+    @LioReferenceMethod(isRespond = false)
+    String sayHello(String name);
+    
+}
+```
+
+#### 📂 **源码位置：**
+`lio-cluster` 模块中的 `com.gt.lio.cluster.client.ClientInvoker` 类
+
+---
+### 11. **本地服务调用器**
+在 Lio RPC 框架中，当远程请求到达服务提供方时，框架会通过本地服务调用器执行具体的服务方法。为了提升性能并避免频繁使用 Java 反射带来的性能损耗，框架提供了两种可选的调用方式：
+- JdkRpcInvoker：基于 JDK 原生反射机制。
+- CglibRpcInvoker：基于 CGLIB 的 FastClass 技术，实现非反射方式的方法调用，显著提升调用性能，是默认调用方式。
+
+#### 📋 **使用方式：**
+在 application.yml 中配置调用器类型
+```yaml
+lio:
+  provider:
+    proxy: cglib # 支持cglib、jdk
+```
+
+#### 🧩 **扩展性：**
+Lio RPC 框架支持通过 SPI 扩展本地服务调用器，开发者可以自定义实现 `RpcInvokerFactory` 接口，并使用 `@SPIService` 注解指定本地服务调用器的名称，在 `META-INF/services/` 目录下添加配置文件 `com.gt.lio.common.invoker.RpcInvokerFactory`，并在配置文件中填入实现类的全限定类名，即可完成扩展注册。
+
+#### 📂 **源码位置：**
+`lio-common` 模块中的 `com.gt.lio.common.invoker` 包
+
+---
+### 12. **通信协议**
+在 Lio RPC 框架中，通信协议是框架的基础，它定义了数据包的格式和传输方式，以保证数据在网络传输过程中能够被正确解析和正确地传递。Lio RPC 框架目前只支持自研的`lio`协议，这是一款非常高效的网络通信协议，下面我将着重地介绍`lio`协议。
+
+#### 📄 **lio协议头格式：**
+
+| 魔数 (2 字节)       | 控制字段1 (1 字节)    | 控制字段2 (1 字节)   | 请求序号 (8 字节) | 数据长度 (4 字节) |
+|---------------------|------------------------|-----------------------|--------------------|--------------------|
+| 16 bit              | 8 bit                  | 8 bit                 | 64 bit             | 32 bit             |
+| [Magic Number]      | [Control Byte]         | [MetaData Byte]       | [Request ID]       | [Payload Length]   |
+| 字母 L (8bit)       | 消息类型(1bit)         | 线程池名称编码(3bit)  | 唯一请求ID         | payload字节长度    |
+| 主版本 (4bit)       | 是否响应(1bit)         | 保留位(5bit)          |                    |                    |
+| 子版本 (4bit)       | 序列化方式(3bit)       |                       |                    |                    |
+|                     | 压缩方式(3bit)         |                       |                    |                    |
+
+我们可以看到，整个lio协议的头信息为16字节，是非常紧凑的，但是功能非常全面，下面我介绍一下每个字段的含义：
+
+- 魔数：用于识别协议，共占用两个字节，前8位为字母L，后8位表示协议的主版本和子版本号，用于兼容升级。
+- 控制字段1：只占用了一个字节，从高位到低位，第一位表示消息的类型，0表示业务消息，1表示心跳；第二位表示是否是响应消息，0表示响应，1表示不响应；第三到第五位表示序列化方式的编号；第六到第八位表示解压缩方式的编号。
+- 控制字段2：只占用了一个字节，从高位到低位，第一到第三位表示业务线程池名称的编码，用于区分请求处理到哪个业务线程池执行。
+- 请求序号：占用8个字节，用于标识唯一的请求，用于在请求和响应之间进行匹配。
+- 数据长度：占用4个字节，用于标识消息体长度，用于在接收端进行消息体解析。
+
+`lio`协议在设计上充分考虑了高性能、可扩展性与易用性，展现出优秀的通信能力。其采用紧凑的二进制协议头结构，包含魔数标识、版本控制、消息类型、序列化方式、压缩策略等关键元信息，确保了协议的灵活性与兼容性。通过固定长度字段与高效位运算结合的方式，提升了编解码效率，降低了网络传输开销，同时满足多样化的业务场景需求。整体设计简洁清晰、扩展性强，为构建高并发、低延迟的分布式服务提供了坚实的基础。
+
+#### 🧩 **扩展性：**
+Lio RPC 框架支持通过 SPI 扩展通信协议，开发者可以自定义实现 `ProtocolCodec` 接口，并使用 `@SPIService` 注解指定通信协议的名称，在 `META-INF/services/` 目录下添加配置文件 `com.gt.lio.protocol.ProtocolCodec`，并在配置文件中填入实现类的全限定类名，即可完成扩展注册。
+
+#### 📂 **源码位置：**
+`lio-protocol` 模块
+
+---
+### 13. **传输框架**
+Lio RPC 框架底层采用 Netty 作为网络通信基础，充分发挥其高性能、异步非阻塞 I/O 和灵活的事件驱动模型优势，保障了框架在高并发、低延迟场景下的稳定传输能力。基于 Netty 的 Reactor 线程模型，Lio 实现了服务调用的高效收发处理，支持 TCP 长连接通信、自定义协议编解码、心跳机制等核心功能。
+#### 📄 **高效的体现：**
+- 高并发：Lio RPC 框架基于 Netty 的 Reactor 线程模型，实现了高并发的 TCP 长连接通信，支持海量并发请求的处理。
+- 低延迟：Lio RPC 框架的自定义协议编解码，并不会进行序列化和反序列化操作、也不会进行解压缩操作，并且在ChannelHandler也不会进行直接的业务调用，上述这些操作都在业务线程中完成，从而实现了低延迟的通信。
+- 高性能：Lio RPC 框架支持 Netty 的异步非阻塞 I/O 和灵活的事件驱动模型，实现了高性能的网络通信。
+
+#### 📂 **源码位置：**
+`lio-remote` 模块
