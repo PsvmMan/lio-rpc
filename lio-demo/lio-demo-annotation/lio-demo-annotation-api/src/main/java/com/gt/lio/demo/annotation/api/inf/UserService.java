@@ -26,7 +26,7 @@ public interface UserService {
      * @return 用户列表
      */
     @LioReferenceMethod(timeout = 8000)
-    @LioServiceMethod(isCompressed = true)
+    @LioServiceMethod(isCompressed = true,compressionType = "zstd")
     List<User> selectAll();
 
     /**

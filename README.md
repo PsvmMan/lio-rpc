@@ -215,10 +215,12 @@ Hello, Lio!
 ---
 
 ## 功能详解
+在功能详解中，我会先介绍一些基础性的功能模块，最后将整个框架进行串联，以展示整个框架的运行机制。
 
 ### 1. **SPI 机制**
 
 Lio RPC 框架采用基于 JDK 原生 ServiceLoader 的 SPI（Service Provider Interface）机制，对核心组件进行统一管理和动态加载。通过封装 `LioServiceLoader` 工具类，实现了更加灵活、可扩展的服务发现与实例化机制。
+不仅是Lio RPC，很多的框架都采用了SPI机制，比如Dubbo，理解SPI机制对框架源码学习的基础。
 
 #### 主要特性：
 
@@ -268,3 +270,68 @@ public class JsonSerialization implements Serialization {
 xx.xx.xx.xx.xx.JsonSerialization
 ```
 该机制极大提升了 Lio RPC 的可维护性和可扩展性，使得框架具备良好的插拔能力，方便开发者根据业务需求定制组件。
+
+---
+### 2. **序列化**
+Lio RPC 框架内置了对多种常见序列化方式的支持，开发者可根据性能需求和业务场景灵活选择。当前支持以下三种主流的序列化机制：
+- JDK 原生序列化：Java 自带的默认序列化实现，兼容性强但性能较低，适用于开发调试或简单场景。
+- Hessian：轻量级二进制序列化协议，具有良好的跨语言支持和较高的序列化效率，是默认选项。
+- Kryo：高效的 Java 对象图序列化框架，特别适合对性能要求极高的场景，序列化速度优异。
+
+#### 使用方式：
+你可通过配置指定使用哪种序列化方式，例如在 application.yml 中配置，注意：序列化方式只需要在服务提供方端配置即可，服务消费方会自动使用服务提供方配置的序列化方式。
+```yaml
+lio:
+  protocol:
+    name: lio #通信协议名称
+    port: 20880 #通信端口
+    serialization: hessian # 可选值：jdk / hessian / kryo
+```
+
+#### 扩展性：
+Lio RPC 框架支持通过 SPI 扩展序列化方式，开发者可以自定义实现 `Serialization` 接口，并使用 `@SPIService` 注解指定序列化方式的名称，在 `META-INF/services/` 目录下添加配置文件 `com.gt.lio.serialization.Serialization`，并在配置文件中填入实现类的全限定类名，即可完成扩展注册。
+
+---
+### 3. **解压缩**
+Lio RPC 框架支持在传输过程中对数据进行压缩和解压，以降低网络带宽消耗并提升整体通信效率。目前框架内置了以下两种主流压缩算法：
+
+- GZIP：广泛使用的压缩算法，具有良好的通用性和压缩率，适用于大多数业务场景。
+- ZSTD（Zstandard）：Facebook 开源的高性能压缩算法，在压缩速度和压缩率之间取得了良好平衡，尤其适合对性能要求较高的场景，是默认选项。
+
+#### 使用方式：
+因为解压缩这种需求一般都是方法级别的需求，所以框架提供了方法级别的注解来开启是否需要解压缩。解压缩的需求，可以细分为两种情况：一是服务消费者的请求数据特别大，需要进行压缩，二是服务提供者的响应数据特别大，需要进行压缩。
+
+我们以`UserService`接口为例，它的`selectAll()`方法返回的数据量特别大，而`insert()`方法批量插入的入参数据量比较大。
+```java
+public interface UserService {
+
+    List<User> selectAll();
+
+    int insert(List<User> user);
+}
+```
+
+首先站在服务提供者的角度来说，我们可以给`UserService`接口的`selectAll()`方法的返回结果进行压缩，使用`@LioServiceMethod`注解来开启压缩功能，可以指定压缩算法为，默认是`zstd`。
+```java
+public interface UserService {
+
+    @LioServiceMethod(isCompressed = true, compressionType = "zstd")
+    List<User> selectAll();
+
+    int insert(List<User> user);
+}
+```
+
+站在服务消费者的角度来说，我们可以给`UserService`接口的`insert()`方法的请求数据进行压缩，使用`@LioReferenceMethod`注解来开启压缩功能，可以指定压缩算法为，默认是`zstd`。
+```java
+public interface UserService {
+    
+    List<User> selectAll();
+    
+    @LioReferenceMethod(isCompressed = true, compressionType = "zstd")
+    int insert(List<User> user);
+}
+```
+
+#### 扩展性：
+Lio RPC 框架支持通过 SPI 扩展解压缩方式，开发者可以自定义实现 `Compression` 接口，并使用 `@SPIService` 注解指定解压缩方式的名称，在 `META-INF/services/` 目录下添加配置文件 `com.gt.lio.compression.Compression`，并在配置文件中填入实现类的全限定类名，即可完成扩展注册。
