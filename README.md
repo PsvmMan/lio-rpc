@@ -85,6 +85,7 @@ Lio RPC 是一个轻量级但功能强大的 Java 远程过程调用（Remote Pr
 
 ## 快速入门
 
+
 ### ✅ 添加依赖（Maven 示例）
 
 ```xml
@@ -210,3 +211,60 @@ http://localhost:8080/hello?name=Lio
 ```
 Hello, Lio!
 ```
+
+---
+
+## 功能详解
+
+### 1. **SPI 机制**
+
+Lio RPC 框架采用基于 JDK 原生 ServiceLoader 的 SPI（Service Provider Interface）机制，对核心组件进行统一管理和动态加载。通过封装 `LioServiceLoader` 工具类，实现了更加灵活、可扩展的服务发现与实例化机制。
+
+#### 主要特性：
+
+- **自动加载服务实现类**：支持自动扫描并加载接口的实现类，简化扩展组件的集成流程。
+- **支持自定义服务名称与编码**：通过 `@SPIService` 注解，开发者可以为每个实现类指定服务名（name）和服务编号（code），便于协议层、序列化层等模块使用。
+- **按名称或编码获取服务实例**：提供 `getService(String name)` 方法，以及 `getCodeByServiceName()` 和 `getServiceNameByCode()` 等方法，实现服务的双向映射。
+- **线程安全与缓存优化**：使用 ConcurrentHashMap 缓存已加载的服务实例和映射关系，确保并发访问下的性能与一致性。
+- **延迟加载机制**：服务实现在首次调用时才会被加载，减少启动开销。
+- **兼容标准 SPI 规范**：保持与 JDK 原生 SPI 的兼容性，开发者只需在 `META-INF/services/` 目录下添加配置文件即可完成扩展注册。
+
+
+#### SPIServic注解介绍：
+
+该注解用于标识一个服务实现类，它包含以下两个属性：
+- **value**：服务名称，这个比较容易理解，例如我们配置序列化方式的时候，value就是序列化方式名称，例如：jdk、hessian、kryo
+- **code**：服务编号，并不是所有使用SPI机制的服务都需要服务编号，序列化方式是需要服务编号的，例如：0x01、0x02、0x03等，因为在网络通信的时候，协议头中的序列化方式，通常是使用的编号表示，编号远比服务名称要短很多，所以需要服务编号。但是例如像负载均衡策略这种不需要网络传输的内容，不配置编号也没有关系的，默认为0x00，表示编码无作用。
+
+
+#### 典型使用场景：
+
+- 序列化方式扩展（JDK、Hessian、Kryo）
+- 负载均衡策略扩展（weightedRandom、consistentHash）
+- 集群策略扩展（simple、retryOnFailure、parallel）
+- 注册中心扩展（Zookeeper、Nacos）
+
+#### 示例说明：
+以序列化方式扩展为例，当框架提供的序列化方式不满足时，开发者可以实现`Serialization`接口，并使用`@SPIService`注解进行扩展。注意：code值不能和框架提供的序列化方式冲突，且`0x00`是无效的，所以建议开发者按照已有的序列化方式编码值+1，例如：`0x04`。
+```java
+@SPIService(value = "json", code = 0x04)
+public class JsonSerialization implements Serialization {
+
+    @Override
+    public <T> byte[] serialize(T obj) {
+        .......
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public <T> T deserialize(byte[] bytes, Class<T> clazz) {
+        .......
+    }
+}
+```
+然后在`META-INF/services/` 目录下添加配置文件`com.gt.lio.serialization.Serialization`，即可完成扩展注册，文件内容如下：
+```
+// 填写实现类的全限定名
+xx.xx.xx.xx.xx.JsonSerialization
+```
+该机制极大提升了 Lio RPC 的可维护性和可扩展性，使得框架具备良好的插拔能力，方便开发者根据业务需求定制组件。
