@@ -68,26 +68,145 @@ Lio RPC 是一个轻量级但功能强大的 Java 远程过程调用（Remote Pr
 
 本项目采用模块化设计，主要模块如下：
 
-| 模块名 | 描述 |
-|--------|------|
-| `myrpc-common` | 公共工具类、常量定义 |
-| `myrpc-core` | 核心逻辑：代理生成、协议编解码、通信模型 |
-| `myrpc-protocol` | 协议抽象层，支持 LIO、HTTP、Dubbo 协议等 |
-| `myrpc-serialize` | 序列化模块，支持 JSON、Hessian、Protobuf 等 |
-| `myrpc-transport` | 基于 Netty 的网络通信实现 |
-| `myrpc-registry` | 服务注册与发现模块，支持 Zookeeper、Nacos 等 |
-| `myrpc-cluster` | 集群容错模块：负载均衡、故障转移 |
-| `myrpc-spring-boot-starter` | Spring Boot 自动装配模块 |
+| 模块名                 | 描述                                               |
+|---------------------|--------------------------------------------------|
+| `lio-common`        | 公共工具类、常量定义、SPI机制                                 |
+| `lio-config`        | 服务导出导入、配置中心模块，支持 YAML、Properties、配置Bean 等方式加载配置。 |                                 |
+| `lio-protocol`      | 通信协议模块，支持自定义扩展通信协议                               |
+| `lio-serialization` | 序列化模块，支持自定义扩展序列化方式                               |                                      |
+| `lio-compression`   | 解压缩模块，支持自定义扩展解压缩方式                               |                                      |                                              |                                      |
+| `lio-remote`        | 传输层模块，支持自定义传输层逻辑                                 |                                      |                                               |
+| `lio-registry`      | 服务注册与发现模块，支持 Zookeeper、Nacos，支持自定义扩展注册中心         |
+| `lio-cluster`       | 集群容错模块：负载均衡、故障转移                                 |
+| `lio-limiter`       | 流量控制模块，支持自定义扩展流量控制方式                             |
+| `lio-core`          | 集成模块，提供对Spring 和 Spring Boot 的原生集成支持                                          |
 
 ---
 
 ## 快速入门
 
-### 添加依赖（Maven 示例）
+### ✅ 添加依赖（Maven 示例）
 
 ```xml
+<!-- Lio框架核心依赖 -->
 <dependency>
-    <groupId>com.myrpc</groupId>
-    <artifactId>myrpc-spring-boot-starter</artifactId>
+    <groupId>com.gt.lio</groupId>
+    <artifactId>lio-core</artifactId>
     <version>1.0.0</version>
 </dependency>
+
+<!-- zookeeper作为注册中心 -->
+<dependency>
+    <groupId>com.gt.lio</groupId>
+    <artifactId>lio-register-zookeeper</artifactId>
+    <version>1.0.0</version>
+</dependency>
+
+<!-- 使用lio通信协议 -->
+<dependency>
+    <groupId>com.gt.lio</groupId>
+    <artifactId>lio-protocol-lio</artifactId>
+    <version>1.0.0</version>
+</dependency>
+```
+
+### 🛠️ 配置服务
+
+接下来，需要对应用程序进行一些基本配置。可以在 application.yml 或 application.properties 文件中进行配置。这里以 application.yml 为例：
+```yaml
+#生产者
+lio:
+  #服务配置
+  application:
+    name: provider #服务名称
+    version: 1.0.0 #服务版本
+    group: dev #服务分组
+  #通信协议配置
+  protocol:
+    name: lio #通信协议名称
+    port: 20880 #通信端口
+    serialization: hessian #序列化方式
+  #注册中心配置
+  registry:
+    type: zookeeper #注册中心类型
+    address: 192.168.204.130:2181 #注册中心地址
+```
+
+```yaml
+#消费者
+lio:
+  #服务配置
+  application:
+    name: consumer #服务名称
+    version: 1.0.0 #服务版本
+    group: dev #服务分组
+  #注册中心配置
+  registry:
+    type: zookeeper #注册中心类型
+    address: 192.168.204.130:2181 #注册中心地址
+```
+
+### 📦 编写服务接口与实现
+定义一个远程调用接口：
+```java
+public interface HelloService {
+    String sayHello(String name);
+}
+```
+在服务提供者中实现该接口：
+```java
+@LioService
+public class HelloServiceImpl implements HelloService {
+    @Override
+    public String sayHello(String name) {
+        return "Hello, " + name + "!";
+    }
+}
+```
+
+### 🔌 启动 RPC 服务
+```java
+@SpringBootApplication
+@LioEnable
+public class RpcProviderApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(RpcProviderApplication.class, args);
+    }
+}
+```
+
+### 📞 调用远程服务
+在消费者端注入远程服务并调用：
+```java
+@RestController
+public class HelloController {
+
+    @Reference
+    private HelloService helloService;
+
+    @GetMapping("/hello")
+    public String hello(@RequestParam String name) {
+        return helloService.sayHello(name);
+    }
+}
+```
+启动消费者服务：
+```java
+@SpringBootApplication
+@LioEnable
+public class RpcConsumerApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(RpcProviderApplication.class, args);
+    }
+}
+```
+
+### 🧪 运行测试
+启动服务提供者和消费者后，访问：
+```
+http://localhost:8080/hello?name=Lio
+```
+你会看到输出：
+```
+Hello, Lio!
+```
