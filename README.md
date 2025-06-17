@@ -1046,6 +1046,54 @@ Lio RPC 框架现阶段功能是完善的，但是未来会继续优化和扩展
 ---
 ## 贡献代码
 ### **📌 贡献流程**
+#### 1.Fork 本仓库到自己的 GitHub 账户下；
+```
+https://github.com/PsvmMan/lio-rpc
+```
+#### 2.克隆仓库到本地；
+```   
+git clone https://github.com/你的用户名/lio-rpc.git
+```
+#### 3.添加上游仓库（方便后续同步更新）
+```
+git remote add upstream https://github.com/PsvmMan/lio-rpc.git
+```
+#### 4.切换到 dev 分支进行开发
+```
+git checkout -b dev origin/dev
+```
+#### 5.拉取最新代码（每次开始开发前）
+```
+# 获取作者仓库的最新内容
+git fetch upstream
+
+# 切换到本地 dev 分支
+git checkout dev
+
+# 合并你 dev 分支的最新改动
+git merge upstream/dev
+```
+#### 6.开始开发
+- 修改代码、添加功能或修复 bug；
+- 确保代码风格统一、有必要的注释和测试；
+- 提交时使用清晰的备注信息：
+```
+git add .
+git commit -m "修复了一个连接池泄漏的问题"
+git push origin dev
+```
+#### 7发起 Pull Request（PR）
+- 打开你的 GitHub 页面；
+- 点击 “Compare & pull request”；
+- 设置如下内容：
+```
+base repository: PsvmMan/lio-rpc
+base: dev
+head repository: 你的用户名/lio-rpc
+compare: dev
+```
+- 填写 PR 描述，说明你做了哪些改动、解决了什么问题；
+- 提交 PR。
 
 ### **❤️ 感谢每一位贡献者！**
 我们会定期在 README 或 Wiki 中列出所有贡献者名单，并感谢你们对 Lio RPC 的支持与共建！
