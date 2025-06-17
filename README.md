@@ -18,9 +18,7 @@
 7. [设计理念](#设计理念)
 8. [开发计划](#开发计划)
 9. [贡献代码](#贡献代码)
-10. [许可证](#许可证)
-11. [联系方式](#联系方式)
-12. [致谢](#致谢)
+10. [联系交流](#联系交流)
 
 ---
 
@@ -46,9 +44,12 @@ Lio RPC 是一个轻量级但功能强大的 Java 远程过程调用（Remote Pr
 - ✅ 流量控制：客户端支持滑动窗口、漏桶、令牌桶等限流方式，并且支持自定义扩展流量控制方式
 - ✅ 集群策略：支持快速失败、失败重试、多路竞速等集群策略，并且支持自定义扩展集群策略
 - ✅ 业务线程池：支持多业务线程池，保证业务处理隔离，并且支持自定义扩展业务线程池
-- ✅ 高性能 IO：基于 Netty 实现异步非阻塞通信
-- ✅ 可插拔设计：提供SPI机制，使系统功能模块解耦，易于二次开发与扩展
-- ✅ 提供了对 Spring 和 Spring Boot 的原生集成支持
+- ✅ 高性能：基于 Netty 的异步非阻塞 I/O 模型，结合 CGLIB FastClass 非反射调用技术，实现低延时响应。
+- ✅ 高并发：基于 Netty 的异步非阻塞 I/O 模型，结合业务线程池，以及ChannelHandler链路低延时化，确保处理海量请求。
+- ✅ 高可用：支持断线重连、失败重试、心跳检测等机制，确保服务在不稳定网络环境下的可靠性。
+- ✅ 高扩展性：提供SPI机制，使系统功能模块解耦，易于二次开发与扩展
+- ✅ 服务治理能力：支持服务分组、版本控制、服务发现、限流降级等基础治理功能，为后续构建微服务架构打下基础。
+- ✅ 易用性：提供简洁的 API 和注解式配置，开箱即用，兼容 Spring、SpringBoot 生态，便于快速集成部署。
 
 ---
 
@@ -170,9 +171,10 @@ public class HelloServiceImpl implements HelloService {
 ```
 
 ### 🔌 启动 RPC 服务
+需要在启动类上添加 @EnableLio 注解，来实现 RPC 服务：
 ```java
 @SpringBootApplication
-@LioEnable
+@EnableLio
 public class RpcProviderApplication {
     public static void main(String[] args) {
         SpringApplication.run(RpcProviderApplication.class, args);
@@ -195,10 +197,10 @@ public class HelloController {
     }
 }
 ```
-启动消费者服务：
+启动消费者服务，同样在启动类上添加 @EnableLio 注解，来实现 RPC 服务。
 ```java
 @SpringBootApplication
-@LioEnable
+@EnableLio
 public class RpcConsumerApplication {
     public static void main(String[] args) {
         SpringApplication.run(RpcProviderApplication.class, args);
@@ -689,7 +691,7 @@ Lio RPC 框架支持通过 SPI 扩展通信协议，开发者可以自定义实�
 
 ---
 ### 13. **传输框架**
-Lio RPC 框架底层采用 Netty 作为网络通信基础，充分发挥其高性能、异步非阻塞 I/O 和灵活的事件驱动模型优势，保障了框架在高并发、低延迟场景下的稳定传输能力。基于 Netty 的 Reactor 线程模型，Lio 实现了服务调用的高效收发处理，支持 TCP 长连接通信、自定义协议编解码、心跳机制等核心功能。
+Lio RPC 框架底层采用 Netty 作为网络通信基础，充分发挥其高性能、异步非阻塞 I/O 和灵活的事件驱动模型优势，保障了框架在高并发、低延迟场景下的稳定传输能力。基于 Netty 的 Reactor 线程模型，Lio 实现了服务调用的高效收发处理，支持 TCP 长连接通信、自定义协议编解码、心跳机制、断开重连等核心功能。
 #### 📄 **高效的体现：**
 - 高并发：Lio RPC 框架基于 Netty 的 Reactor 线程模型，实现了高并发的 TCP 长连接通信，支持海量并发请求的处理。
 - 低延迟：Lio RPC 框架的自定义协议编解码，并不会进行序列化和反序列化操作、也不会进行解压缩操作，并且在ChannelHandler也不会进行直接的业务调用，上述这些操作都在业务线程中完成，从而实现了低延迟的通信。
@@ -701,3 +703,354 @@ Lio RPC 框架底层采用 Netty 作为网络通信基础，充分发挥其高�
 ---
 ### 14. **配置信息**
 通过上面的基础功能的介绍，我们已经知道Lio RPC 框架的运行机制离不开各种层级的配置信息，下面我们来完整地介绍一下Lio RPC 框架的配置信息。
+#### 📄 **lio.application：**
+```yaml
+lio:
+  application:
+    name: demo-service 
+    version: 1.0.0 
+    group: dev 
+```
+| 配置项               | 描述                                                                                                 | 默认值                                                       |
+| -------------------- |----------------------------------------------------------------------------------------------------| ------------------------------------------------------------ |
+| name                 | 服务名称，在当前框架中这个属性暂时没有被使用                                                                             |                                                              |
+| version              | 服务版本，服务提供者向注册中心发布服务时，以及消费者订阅服务时，均以 `接口全限定名 + 版本号 + 分组` 作为服务的唯一标识，确保在多版本共存、多分组隔离的场景下能够准确地进行服务发现与调用。 |                                                              |
+| group                | 服务分组，同上理解                                                                                          |                                                              |
+
+#### 📄 **lio.registry：**
+```yaml
+lio:
+  registry:
+    type: zookeeper
+    address: 127.0.0.1:2181
+    username: 8888
+    password: 1
+    connectionTimeoutMs: 5000
+    sessionTimeoutMs: 15000
+    retryIntervalMs: 3000
+    maxRetries: 3 
+```
+| 配置项               | 描述                              | 默认值                                                       |
+| -------------------- |---------------------------------| ------------------------------------------------------------ |
+| type                 | 注册中心类型，目前支持 `zookeeper`、`nacos` |                                                              |
+| address              | 注册中心地址，格式为 `ip:port`            |                                                              |
+| username             | 注册中心用户名，用于认证                    |                                                              |
+| password             | 注册中心密码，用于认证                     |                                                              |
+| connectionTimeoutMs  | 连接超时时间，单位为毫秒                    | 5000                                                         |
+| sessionTimeoutMs     | 会话超时时间，单位为毫秒                    | 30000                                                        |
+| retryIntervalMs      | 重试间隔时间，单位为毫秒                    | 1000                                                         |
+| maxRetries           | 客户端连接断开重连的最大重试次数                | 3                                                            |
+
+#### 📄 **lio.registries：**
+配置多个注册中心，下面的r1、r2不是固定值，可以自定义，不重复即可。
+```yaml
+lio:
+  registries:
+    r1:
+      type: zookeeper
+      address: 127.0.0.1:2181
+      username: 8888
+      password: 1
+      connectionTimeoutMs: 5000
+      sessionTimeoutMs: 15000
+      retryIntervalMs: 3000
+      maxRetries: 3
+    r2:
+      type: nacos
+      address: 127.0.0.1:8848
+      username: 8888
+      password: 1
+      connectionTimeoutMs: 5000
+      sessionTimeoutMs: 15000
+      retryIntervalMs: 3000
+      maxRetries: 3
+```
+
+#### 📄 **lio.protocol：**
+```yaml
+lio:
+  protocol:
+    name: lio
+    port: 20088
+    serialization: hessian
+    remote: netty
+    heartbeatReadTimeout: 30000
+    heartbeatWriteTimeout: 20000
+```
+| 配置项               | 描述                                                         | 默认值     |
+| -------------------- |------------------------------------------------------------|---------|
+| name                 | 协议名称（用于服务提供方），目前支持 `lio`                                            |         |                                                              |
+| port                 | 服务端口（用于服务提供方），服务提供者启动时，会监听该端口，消费者订阅时，会向该端口发起连接                      |         |
+| serialization        | 序列化方式（用于服务提供方），目前支持 `hessian`、`jdk`、`kryo`                          | hessian |
+| remote               | 远程通信协议（用于服务提供方），目前支持 `netty`                                        | netty   |
+| heartbeatReadTimeout | 心跳读超时时间（用于服务提供方），单位为毫秒，如果在这个时间内没有收到任何数据, 则认为连接可能已经断开或对方不可达 | 60000   |
+| heartbeatWriteTimeout | 心跳写超时时间（用于服务消费方），单位为毫秒，期望的心跳消息发送的最大延迟                      | 45000   |
+
+#### 📄 **lio.protocols：**
+配置多个协议，下面的p1、p2不是固定值，可以自定义，不重复即可。
+```yaml
+lio:
+  protocols:
+    p1:
+      name: lio
+      port: 20088
+      serialization: hessian
+      remote: netty
+      heartbeatReadTimeout: 30000
+      heartbeatWriteTimeout: 20000
+    p2:
+      name: rest #rest协议，框架咱不支持，这里只是演示
+      port: 8080
+```
+
+#### 📄 **lio.provider：**
+下面的配置都是用于服务提供方
+```yaml
+lio:
+  provider:
+    export: true
+    proxy: cglib
+    defaultThreadPoolMaxSize: 20
+    defaultThreadPoolCoreSize: 20
+    defaultThreadPoolKeepAliveTime: 60
+    defaultThreadPoolQueueSize: 10000
+```
+| 配置项                           | 描述                                  | 默认值      |
+| --------------------------------- |-------------------------------------|----------|
+| export                            | 是否暴露服务，如果设置为 `false`，则不会暴露服务        | true     |
+| proxy                             | 服务提供方执行远程调用的代理方式，目前支持 `jdk`、`cglib` | cglib    |
+| defaultThreadPoolMaxSize          | 默认业务线程池的最大线程数                       | CPU核心数 * 2         |
+| defaultThreadPoolCoreSize         | 默认业务线程池的核心线程数                          | CPU核心数 * 2 |
+| defaultThreadPoolKeepAliveTime    | 默认业务线程池的空闲线程存活时间，单位为秒                  | 60       |
+| defaultThreadPoolQueueSize        | 默认业务线程池的队列大小                           | 10000    |
+
+#### 📄 **lio.consumer：**
+下面的配置都是用于服务消费方
+```yaml
+lio:
+  consumer:
+    retries: 2
+    parallelNumber: 3
+    timeout: 0
+    loadbalance: weightedRandom
+    cluster: simple
+    connections: 20
+```
+| 配置项               | 描述                                               | 默认值     |
+| -------------------- |--------------------------------------------------|---------|
+| retries              | 调用失败重试次数，当集群容错策略为`retryOnFailure` 时有效            | 2       |
+| parallelNumber       | 并发数，即一次调用多少个服务提供方，当集群容错策略为`parallel` 时有效         | 3       |
+| timeout              | 调用超时时间，单位为毫秒，如果设置为 `0`，则表示不设置超时时间                | 0       |
+| loadbalance          | 负载均衡算法，目前支持 `weightedRandom`、`consistentHash`    | weightedRandom |
+| cluster              | 集群容错策略，目前支持 `simple`、`retryOnFailure`、`parallel` | simple |
+| connections          | 连接数，客户端与服务端建立连接的连接池大小                              | 20       |                                         | 20       |
+
+
+#### 📄 **@LioService注解：**
+服务提供方，接口级别的配置。
+```java
+@LioService
+public class HelloServiceImpl implements HelloService {
+    @Override
+    public String sayHello(String name) {
+        return "Hello, " + name + "!";
+    }
+}
+```
+| 注解属性               | 描述                        | 默认值     |
+| -------------------- |---------------------------|---------|
+| version             | 服务版本，接口级别                 |         |
+| group             | 服务分组，接口级别                 |         |
+| threadPoolName               | 指定业务线程池的名称                | default |                      |         |
+| weight               | 服务权重，范围为 `1`-`10` | 5       |     |         |        |
+
+
+#### 📄 **@LioReference注解：**
+服务消费方，接口级别的配置。
+```java
+@RestController
+public class HelloController {
+
+    @LioReference
+    private HelloService helloService;
+
+    @GetMapping("/hello")
+    public String hello(@RequestParam String name) {
+        return helloService.sayHello(name);
+    }
+}
+```
+| 注解属性               | 描述                                                               | 默认值            |
+| -------------------- |------------------------------------------------------------------|----------------|
+| interfaceName             | 服务提供端接口的全限定名，默认为当前注解所在属性的类型的全限定名，但是服务提供方和服务引用方有时候是不一致的，可以通过该属性指定 |                |
+| version             | 服务版本，接口级别                                                        |                |
+| group             | 服务分组，接口级别                                                        |                |
+| timeout               | 调用超时时间，单位为毫秒，如果设置为 `0`，则表示不设置超时时间                                | 0              |
+| retries              | 调用失败重试次数，当集群容错策略为`retryOnFailure` 时有效                            | 2              |
+| parallelNumber       | 并发数，即一次调用多少个服务提供方，当集群容错策略为`parallel` 时有效                         | 3              |
+| cluster              | 集群容错策略，目前支持 `simple`、`retryOnFailure`、`parallel`                 | simple         |
+| loadbalance          | 负载均衡算法，目前支持 `weightedRandom`、`consistentHash`                    | weightedRandom |
+| connections               | 连接数，客户端与服务端建立连接的连接池大小                                            | 20             |
+| fallback               | 降级兜底处理类                                                          | 默认不处理             |
+
+
+#### 📄 **@LioServiceMethod注解：**
+服务提供方，方法级别的配置。
+```java
+public interface UserService {
+
+    @LioServiceMethod
+    List<User> selectAll();
+
+    int insert(List<User> user);
+}
+```
+| 注解属性               | 描述                      | 默认值  |
+| -------------------- |-------------------------|------|
+| isCompressed               | 是否对返回结果进行压缩             | false |
+| compressionType              | 压缩类型，目前支持 `gzip`、`zstd` | zstd     |
+
+
+#### 📄 **@LioReferenceMethod注解：**
+服务消费方，方法级别的配置。
+```java
+public interface HelloService {
+    
+    @LioReferenceMethod
+    String sayHello(String name);
+    
+}
+```
+| 注解属性               | 描述                                               | 默认值            |
+| -------------------- |--------------------------------------------------|----------------|
+| timeout               | 调用超时时间，单位为毫秒，如果设置为 `0`，则表示不设置超时时间                | 0              |
+| retries              | 调用失败重试次数，当集群容错策略为`retryOnFailure` 时有效            | 2              |
+| parallelNumber       | 并发数，即一次调用多少个服务提供方，当集群容错策略为`parallel` 时有效         | 3              |
+| cluster              | 集群容错策略，目前支持 `simple`、`retryOnFailure`、`parallel` | simple         |
+| loadbalance          | 负载均衡算法，目前支持 `weightedRandom`、`consistentHash`    | weightedRandom |
+| isCompressed               | 是否对入参进行压缩                                        | false          |
+| compressionType              | 压缩类型，目前支持 `gzip`、`zstd`                          | zstd           |
+| isRespond               | 是否需要响应结果                                         | true           |
+| isAsync              | 是否开启异步调用                                         | false          |
+| callback              | 如果是异步调用，指定回调类                                    | 默认空处理          |
+
+
+#### 📄 **@LioNoFallback注解：**
+由于`@LioReference`的`fallback`支持`接口级别`的异常兜底处理，如果某些方法不想受影响，可以在方法上添加`@LioNoFallback`注解。
+```java
+public interface HelloService {
+    
+    String sayHello(String name);
+
+    @LioNoFallback
+    String sayHello(String name, int age);
+    
+}
+```
+
+#### 📄 **@LioRateLimit注解：**
+服务消费方，方法级别的限流配置。
+```java
+public interface UserService {
+
+    @LioRateLimit(type = "token_bucket", period = 1000, capacity = 3, refillTokens = 1)
+    User selectById(Long id);
+    
+}
+```
+| 注解属性               | 描述                                                       | 默认值   |
+| -------------------- |----------------------------------------------------------|-------|
+| type               | 限流类型，目前支持 `token_bucket`、`leaky_bucket`、`sliding_window` |       |
+| period               | 单位时间长度（毫秒），如 1000 表示每秒最多 limit 次请求。(令牌桶、滑动窗口)            |       |
+| limit               | 每单位时间允许的最大请求数。(滑动窗口)                                     |       |
+| capacity               | 容量。(令牌桶、漏桶)                                              |       |
+| refillTokens               | 每次补充的令牌数。(令牌桶)                                           |       |
+| leakRate               | 漏桶漏出速率，每秒处理多少请求。（漏桶）                                     |       |
+| timeout               | 等待限流释放的时间（毫秒），0表示不超时，用于阻塞式限流。                            |       |
+| blocking               | 是否启用阻塞等待模式。                                              |       |
+| field1               | 备用字段1                                                    |       |
+| field2               | 备用字段2                                                    |       |
+| field3               | 备用字段3                                                    |       |
+
+
+
+---
+### 15. **服务启动**
+在快速入门中，我们知道，无论是启动服务提供方，还是启动服务消费方，都需要在主启动类上加上注解`@EnableLio`。
+```java
+@SpringBootApplication
+@EnableLio
+public class RpcProviderApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(RpcProviderApplication.class, args);
+    }
+}
+```
+下面我们看下`@EnableLio`注解中有什么奥秘：
+```java
+@Target(ElementType.TYPE)
+@Retention(RetentionPolicy.RUNTIME)
+@Documented
+@LioConfigLoad
+@LioComponentScan
+public @interface EnableLio {
+
+    // 使用 @AliasFor 为 LioComponentScan 的 basePackages 属性提供别名
+    // scanBasePackages 是 LioComponentScan 的 basePackages 属性的别名。
+    @AliasFor(annotation = LioComponentScan.class, attribute = "basePackages")
+    String[] scanBasePackages() default {};
+
+    // 使用 @AliasFor 为 LioComponentScan 的 basePackageClasses 属性提供别名
+    // scanBasePackageClasses 是 LioComponentScan 的 basePackageClasses 属性的别名。
+    @AliasFor(annotation = LioComponentScan.class, attribute = "basePackageClasses")
+    Class<?>[] scanBasePackageClasses() default {};
+}
+```
+
+#### 📝 **核心要点：**
+
+- `@EnableLio`注解可以配置包扫描路径，是用来扫描`@LioService`注解的类，如果不配置包扫描路径，默认会扫描启动类所在包及其子包。
+- `@LioConfigLoad`注解是用来加载配置文件的，；例如加载`application.yml`和`application.properties`等文件中和Lio框架相关的配置，并且把配置信息加载到Spring容器中。
+- `@LioComponentScan`注解是用来扫描`@LioService`注解的类和`@LioReference`注解的属性。
+
+
+#### 📂 **源码位置：**
+核心源码就在`lio-config`模块，这里暂时不做详细的说明了。大家可以结合上面的基础功能的介绍，再从`@EnableLio`注解为入口，开始阅读源码。
+
+
+
+---
+## 设计理念
+Lio RPC 是一个轻量级、高性能、可扩展的远程过程调用框架，其设计目标是为分布式系统提供高效、稳定、易集成的服务通信能力。整体架构遵循“高内聚、低耦合”、“面向接口编程”和“可插拔扩展”的设计原则，从底层网络通信到服务治理层层解耦，便于开发者根据实际业务需求进行定制与优化。
+
+### **🎯 核心设计目标**
+| 目标     | 描述                                                              |
+|--------|-----------------------------------------------------------------|
+| 高性能    | 基于 Netty 的异步非阻塞 I/O 模型，结合 CGLIB FastClass 非反射调用技术，实现低延时响应。      |
+| 高并发    | 基于 Netty 的异步非阻塞 I/O 模型，结合业务线程池，以及ChannelHandler链路低延时化，确保处理海量请求。 |
+| 高可用    | 支持断线重连、失败重试、心跳检测等机制，确保服务在不稳定网络环境下的可靠性。                          |
+| 高扩展性   | 支持多种序列化协议、多种网络通信协议、多种负载均衡算法、多种容错机制、多种服务治理策略等。                   |
+| 易用性    | 提供简洁的 API 和注解式配置，开箱即用，同时兼容 Spring 生态，便于快速集成部署。                  |
+| 服务治理能力 | 支持服务分组、版本控制、服务发现、限流降级等基础治理功能，为后续构建微服务架构打下基础。                    |
+
+
+---
+## 开发计划
+Lio RPC 框架现阶段功能是完善的，但是未来会继续优化和扩展。
+
+### **📌 后续重点开发方向**
+- 提供 Admin 控制台用于服务管理与调试
+- 支持更多的协议，例如支持 RESTful 接口调用方式，兼容前后端直连场景
+- lio-protocol、lio-remote两个模块在扩展方面设计的不是特别好，有好的想法需要重构优化
+
+---
+## 贡献代码
+### **📌 贡献流程**
+
+### **❤️ 感谢每一位贡献者！**
+我们会定期在 README 或 Wiki 中列出所有贡献者名单，并感谢你们对 Lio RPC 的支持与共建！
+
+---
+## 社区交流
+如有疑问或需要帮助，欢迎加入我们的讨论：
+![社群](./docs/image/wx.jpg)
