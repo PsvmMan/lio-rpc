@@ -1099,6 +1099,6 @@ compare: dev
 我们会定期在 README 或 Wiki 中列出所有贡献者名单，并感谢你们对 Lio RPC 的支持与共建！
 
 ---
-## 社区交流
+## 联系交流
 如有疑问或需要帮助，欢迎加入我们的讨论：
-![社群](./docs/image/wx.jpg)
+![社群](./docs/image/qun.jpg)
