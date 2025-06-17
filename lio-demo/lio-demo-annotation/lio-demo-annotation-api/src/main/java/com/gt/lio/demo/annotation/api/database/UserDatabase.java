@@ -32,11 +32,11 @@ public class UserDatabase {
      * 根据 ID 查询用户
      */
     public static User selectById(Long id) {
-        try {
-            Thread.sleep(5000);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
+//        try {
+//            Thread.sleep(5000);
+//        } catch (InterruptedException e) {
+//            throw new RuntimeException(e);
+//        }
 
         if(id == 3 ){
             throw new RuntimeException("模拟异常");

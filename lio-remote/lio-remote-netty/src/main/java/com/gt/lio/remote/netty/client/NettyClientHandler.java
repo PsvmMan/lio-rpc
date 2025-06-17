@@ -21,12 +21,20 @@ public class NettyClientHandler extends SimpleChannelInboundHandler<ProtocolMess
 
     private static final Logger logger = LoggerFactory.getLogger(NettyClientHandler.class);
 
+    private NettyClient client;
+
+    public NettyClientHandler(NettyClient client){
+        this.client = client;
+    }
+
     /**
      * 客户端连接到服务器时触发
      */
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
-        logger.info("Client connected: [ remoteAddress: " + ctx.channel().remoteAddress() + " , localAddress: " + ctx.channel().localAddress() + "]");
+        if(logger.isInfoEnabled()){
+            logger.info("Client connected: [ remoteAddress: " + ctx.channel().remoteAddress() + " , localAddress: " + ctx.channel().localAddress() + "]");
+        }
         super.channelActive(ctx);
     }
 
@@ -35,7 +43,10 @@ public class NettyClientHandler extends SimpleChannelInboundHandler<ProtocolMess
      */
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        logger.info("Client disconnected: [ remoteAddress: " + ctx.channel().remoteAddress() + " , localAddress: " + ctx.channel().localAddress() + "]");
+        if(logger.isInfoEnabled()){
+            logger.info("Client disconnected: [ remoteAddress: " + ctx.channel().remoteAddress() + " , localAddress: " + ctx.channel().localAddress() + "]");
+        }
+        ctx.channel().eventLoop().schedule(() -> {client.reConnect();},1, java.util.concurrent.TimeUnit.SECONDS);
         super.channelInactive(ctx);
     }
 
@@ -109,7 +120,9 @@ public class NettyClientHandler extends SimpleChannelInboundHandler<ProtocolMess
      */
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-        logger.error("Exception caught from client [ remoteAddress: " + ctx.channel().remoteAddress() + " , localAddress: " + ctx.channel().localAddress() +"]: " + cause.getMessage(), cause);
+        if(logger.isErrorEnabled()){
+            logger.error("Exception caught from client [ remoteAddress: " + ctx.channel().remoteAddress() + " , localAddress: " + ctx.channel().localAddress() +"]: " + cause.getMessage(), cause);
+        }
         ctx.close(); // 关闭连接
     }
 

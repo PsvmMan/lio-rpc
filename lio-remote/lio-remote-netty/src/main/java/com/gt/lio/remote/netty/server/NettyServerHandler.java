@@ -91,10 +91,6 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<ProtocolMess
                     // 反序列化消息
                     RequestMessage requestMessage = serialization.deserialize(body, RequestMessage.class);
 
-                    if(logger.isInfoEnabled()){
-                        logger.info("Received requestMessage from client [" + ctx.channel().remoteAddress() + "]: " + requestMessage);
-                    }
-
                     // 获取执行器
                     RpcInvoker rpcInvoker = RpcInvokerProvider.instance.getInvoker(requestMessage.getServiceName());
                     if(rpcInvoker == null){

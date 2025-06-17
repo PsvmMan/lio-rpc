@@ -224,25 +224,37 @@ public class ClientInvoker {
     private TransportClient getTransportClient(){
 
         if (clients.isEmpty()) {
-            throw new IllegalStateException("没有可用的 TransportClient");
+            this.isAvailable = false;
+            throw new IllegalStateException("没有可用的 TransportClient 连接到远程服务[" + address + "]");
         }
 
         int maxTries = clients.size(); // 最多尝试次数
+        TransportClient transportClient = null;
+        int index = 0;
+
         for (int i = 0; i < maxTries; i++) {
 
-            TransportClient transportClient = clients.get(ThreadLocalRandom.current().nextInt(clients.size()));
+            if(i == 0){
+                index = ThreadLocalRandom.current().nextInt(clients.size());
+            }
+            transportClient = clients.get(index);
 
-            if (transportClient.isConnected()) {
+            if (transportClient.isAvailable()) {
                 return transportClient;
-            } else {
-                // 连接无效，移除该 client
-                clients.remove(transportClient); // CopyOnWriteArrayList 支持安全 remove
+            } else if(transportClient.isClosed()){
+                // 移除
+                clients.remove(transportClient);
+                index = index % clients.size();
+            }else {
+                index = (index + 1) % clients.size();
             }
         }
 
-        // 所有 client 都不可用
-        this.isAvailable = false;
-        throw new IllegalStateException("所有 TransportClient 都已断开连接");
+        if (clients.isEmpty()) {
+            this.isAvailable = false;
+        }
+
+        throw new IllegalStateException("没有可用的 TransportClient 连接到远程服务[" + address + "]");
     }
 
     private ProtocolMessage buildProtocolMessage(RequestMessage req, long requestId, LioReferenceMethodMetadata methodMetadata) throws IOException {
